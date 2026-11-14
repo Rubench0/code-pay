@@ -3,9 +3,17 @@
 Source of truth for phase and status. Update "Current status" at the end of every phase.
 
 ## Current status
-- Phase 1a done: Next.js scaffold, agent files, docs, secret guards, git init.
-- Next: 1b (Opus) — verify `docs/pey-api.md` against Pey's openapi.json, design DB schema and charge states.
-- Waiting on Rubén: Pey account + pre-authorized CLABE + API key, Vercel project + Neon, public GitHub repo.
+- 1a done: scaffold, agent files, docs, secret guards; pushed to github.com/Rubench0/code-pay.
+- 1b done: `docs/pey-api.md` verified against openapi.json and webhook docs; `docs/domain.md` has schema,
+  charge states, matching, reconcile and our API contract.
+- 1c code done (Opus): Drizzle schema, Pey client, session login, `POST /api/charges`, `GET /api/charges/{id}`
+  (reconcile on read), `POST /api/webhooks/pey`, pages `/login` and `/prueba` ($0.01 test). Tests, typecheck,
+  lint and build pass. Not yet run against Pey or Neon.
+- In progress (Cursor): counter screen with mock data in `src/app/(merchant)/mostrador` + shadcn setup.
+- Next: `pnpm db:push` once `DATABASE_URL` is set → env vars in Vercel → deploy → first real $0.01 on `/prueba`
+  (works via reconcile even before the webhook) → register webhook URL `/api/webhooks/pey` in Pey, set
+  `PEY_WEBHOOK_SECRET` → 1d security review (Opus).
+- Waiting on Rubén: Pey API key, Neon `DATABASE_URL`, webhook secret after deploy.
 
 ## Phases
 | # | Scope | Done when |
@@ -22,4 +30,6 @@ Source of truth for phase and status. Update "Current status" at the end of ever
 
 ## Pending
 - Integrator must meet rule 8.2 (legal entity or individual with business activity, CLABE in own name).
-- Confirm Pey CoDi fees before claiming "no fees".
+- Confirm Pey CoDi fees before claiming "no fees" (`amountBreakdown.fee` is charged to the payer).
+- Verify with the first real payment: webhook headers and retries, whether webhook `amount` includes fees,
+  whether a fixed-amount QR accepts more than one payment.

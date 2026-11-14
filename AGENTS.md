@@ -26,7 +26,7 @@ Next.js 16 (App Router) + TypeScript · Tailwind + shadcn/ui · Postgres (Neon) 
 - `src/app/t/[token]/` diner page. Public, scoped by table token.
 
 ## Commands
-`pnpm dev` · `pnpm build` · `pnpm lint` · `pnpm typecheck` (`pnpm test` and `pnpm db:push` arrive in phase 1)
+`pnpm dev` · `pnpm build` · `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm db:push` (schema → Neon, reads `.env.local`)
 
 ## Security (non-negotiable)
 - `PEY_API_KEY` and `PEY_WEBHOOK_SECRET` only in server env vars. Never import `src/lib/pey` from client code.
@@ -70,5 +70,6 @@ Next.js 16 (App Router) + TypeScript · Tailwind + shadcn/ui · Postgres (Neon) 
 - At the end of each phase: 2–3 line summary, update "Current status" in docs/plan.md, ask "¿seguimos?".
 - Models: Opus for design, Pey integration and security review; Sonnet for UI and straightforward implementation.
 - Read docs on demand, only the guide you need: `node_modules/next/dist/docs/` for Next APIs,
-  docs/pey-api.md when touching Pey or webhooks, docs/plan.md for phase and status.
+  docs/pey-api.md when touching Pey or webhooks, docs/domain.md for schema, states and our API contract,
+  docs/plan.md for phase and status.
 - Done means typecheck + lint + relevant test pass; for UI, checked in the browser.
