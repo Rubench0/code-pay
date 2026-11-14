@@ -24,7 +24,7 @@ El dinero va **directo del banco del cliente a la CLABE del comercio**. Cobro Co
 |---|---|
 | **Comercio** (cajero, mesero, repartidor) | Abre Cobro CoDi en su celular, teclea el monto, elige propina y muestra un QR o envía el cobro al celular del cliente. |
 | **Cliente / comensal** | Escanea el QR o acepta la notificación desde la app de su banco (CoDi). No descarga nada ni crea cuenta. |
-| **Restaurantes con Amigapp** | Desde un pedido abren el mostrador ya con el monto y la referencia: `/mostrador?monto=<centavos>&ref=<referencia>`. |
+| **Restaurantes con Amigapp** | Desde un pedido abren el mostrador ya con el monto y la referencia, o el backend de Amigapp crea el cobro directamente con la API privada de integración ([ver abajo](#integración-con-amigapp)). |
 
 ## Funcionalidades
 
@@ -41,6 +41,15 @@ El dinero va **directo del banco del cliente a la CLABE del comercio**. Cobro Co
 - Un QR CoDi por persona con la referencia en el concepto del banco (`Mesa 5 2/4`).
 - Avance en vivo "x de n pagados"; al pagar una persona, la pantalla pasa a la siguiente para ir pasando el celular.
 - Si un QR vence, se genera otro solo para esa persona.
+
+### Integración con Amigapp
+- **Enlace**: `/mostrador?monto=<centavos>&ref=<referencia>` abre el mostrador con el monto del pedido; la referencia
+  aparece en el concepto del banco.
+- **API privada, servidor a servidor**, solo para las apps del propio equipo:
+  `POST /api/integrations/charges` crea un cobro QR o push con el monto final del pedido y
+  `GET /api/integrations/charges/{id}` devuelve su estado, con la misma conciliación que el mostrador.
+  Se autentica con `INTEGRATION_API_KEY`; si la variable no está configurada, las rutas responden 404.
+  Amigapp marca un pedido como pagado solo cuando esta consulta devuelve `paid`.
 
 ### Casos de uso de reparto
 - **Pedido por WhatsApp**: el comercio envía el cobro al celular del cliente y despacha cuando ve "Pagado".
@@ -119,14 +128,17 @@ sequenceDiagram
 
 ```mermaid
 flowchart TB
-    AMI["Amigapp<br/>enlace con monto y referencia"] --> UI
+    AMI["Amigapp<br/>producto previo del equipo"] -- "enlace con monto y referencia" --> UI
     UI["Mostrador y Mesa<br/>celular del comercio"] -- "cookie de sesión firmada" --> API
+    AMI -- "llave privada, servidor a servidor" --> INT
     subgraph Vercel["Vercel · Next.js 16"]
         API["Route handlers<br/>/api/charges · /api/session"]
+        INT["API de integración<br/>/api/integrations/charges"]
         WH["Webhook<br/>/api/webhooks/pey"]
         DOM["src/lib/charges<br/>montos, estados, conciliación"]
         PEYC["src/lib/pey<br/>único cliente de Pey · server-only"]
         API --> DOM
+        INT --> DOM
         WH --> DOM
         DOM --> PEYC
     end
@@ -144,12 +156,15 @@ flowchart TB
   El repo es público y no contiene `.env*` salvo `.env.example` vacío.
 - **Sesión del comercio**: cookie `httpOnly`, `Secure`, `SameSite=Lax`, firmada con HMAC-SHA256 y válida 12 h.
   La contraseña se compara en tiempo constante. Crear y consultar cobros exige sesión.
+- **API de integración**: solo servidor a servidor, con `INTEGRATION_API_KEY` en el encabezado `Authorization`,
+  comparada en tiempo constante. Sin la variable configurada, las rutas responden 404.
 - **Webhook firmado**: verificación Standard Webhooks sobre el cuerpo crudo, límite de 64 KB y `webhook-id` único.
 - **Datos del pagador**: la CLABE, el banco y el tipo de cuenta del pagador se eliminan del payload antes de
   guardarlo y nunca se escriben en logs.
 - **Teléfonos**: el número completo se envía a Pey una sola vez; en la base solo quedan los últimos 4 dígitos.
-- **Montos calculados en el servidor**: el navegador envía el monto base y el porcentaje de propina, nunca el total.
-  Cada cobro tiene un tope (`DEMO_MAX_AMOUNT_CENTS`) porque la demo mueve dinero real.
+- **Montos calculados en el servidor**: el navegador envía el monto base y el porcentaje de propina, nunca el total;
+  la API de integración recibe el monto final desde el servidor de Amigapp. Cada cobro tiene un tope
+  (`DEMO_MAX_AMOUNT_CENTS`) porque la demo mueve dinero real.
 - **Solo el servidor marca pagado**, por webhook o conciliación, y solo si lo pagado es igual al total.
 - **Cabeceras HTTP**: `frame-ancestors 'none'` y `X-Frame-Options: DENY` contra clickjacking, `nosniff`,
   `Referrer-Policy` y `Permissions-Policy` mínima. El login solo redirige a rutas del mismo sitio.
@@ -166,13 +181,13 @@ Cobro CoDi es el **punto de venta propio del comercio**: cobra a sus propios cli
 | **9.2 / 10.1.5** Componentes previos | No hay componentes previos (ver abajo). |
 | **7.1** Sin cobros a nombre de terceros | Un solo comercio, sus propias ventas. No se juntan pagos de otros negocios. |
 | **7.3c** Solo la cuenta del titular | Todo pago, propina incluida, va a la CLABE ligada a la API key del titular. El código nunca envía `bankAccountId`. |
-| **7.4** Sin reventa ni exposición de la API | No existe un endpoint público para crear cobros: crear un cobro exige la sesión del comercio. |
+| **7.4** Sin reventa ni exposición de la API | No existe un endpoint público para crear cobros. Crear un cobro exige la sesión del comercio o, para el backend de Amigapp (app del propio equipo), una llave privada servidor a servidor que no se comparte. |
 | **8.1** Credenciales | La API key y el secreto del webhook solo están en variables de entorno del servidor. Las credenciales de prueba para el jurado van en el formulario de envío, no en el repo. |
 
 ### Declaración de componentes previos
 Este repositorio no contiene código de proyectos anteriores. **Amigapp** es un producto previo del equipo
-(pedidos para restaurantes); solo se conecta con Cobro CoDi mediante un enlace a `/mostrador` con el monto y la
-referencia del pedido.
+(pedidos para restaurantes). Se conecta con Cobro CoDi desde fuera, con un enlace a `/mostrador` o con la API
+privada de integración (`/api/integrations/charges`). Ningún código de Amigapp vive en este repositorio.
 
 ## Pruébalo
 
@@ -206,6 +221,7 @@ pnpm dev                     # http://localhost:3000
 | `MERCHANT_PASSWORD` | Contraseña del comercio. Usa un valor aleatorio largo, p. ej. `openssl rand -base64 32`. |
 | `SESSION_SECRET` | Llave para firmar la cookie de sesión. Otro valor aleatorio largo. |
 | `DEMO_MAX_AMOUNT_CENTS` | Tope por cobro en centavos (por defecto `1000` = $10.00). |
+| `INTEGRATION_API_KEY` | Llave privada para el backend de Amigapp. Vacía = API de integración desactivada. |
 
 El webhook se registra en el portal de Pey apuntando a `https://<tu-dominio>/api/webhooks/pey`. En local, sin URL
 pública, la conciliación detecta los pagos de todos modos.
@@ -224,12 +240,13 @@ src/
 │   ├── login                  Acceso del comercio
 │   └── api/                   Handlers delgados: validan → llaman a lib → responden
 │       ├── charges            Crear y consultar cobros
+│       ├── integrations       API privada para el backend de Amigapp
 │       ├── session            Iniciar y cerrar sesión
 │       └── webhooks/pey       Webhook firmado de Pey
 ├── lib/
 │   ├── pey/                   Único cliente HTTP de Pey (server-only)
 │   ├── charges/               Dominio: crear cobro, aplicar pago, conciliar, estados
-│   ├── auth/                  Cookie de sesión firmada
+│   ├── auth/                  Cookie de sesión firmada y llave de integración
 │   └── money.ts               Centavos, propina, división de cuentas
 ├── components/                UI de Mostrador y Mesa (shadcn/ui)
 └── db/                        Esquema Drizzle: charges, payments, webhook_events
@@ -240,7 +257,8 @@ Más detalle en [`docs/domain.md`](docs/domain.md) (estados y contrato de la API
 
 ## Siguientes pasos
 
-- **Integración más profunda con Amigapp**: el pedido se marca pagado solo cuando llega el pago CoDi.
+- **Amigapp de punta a punta**: el comensal paga su pedido con CoDi desde Amigapp y el pedido se marca pagado en
+  cuanto la API de integración confirma `paid`.
 - **Panel del comercio**: ventas y propinas del día, cobros tardíos y pagos `excess` / `mismatch` para reembolso.
 - **Cada comercio con su propia cuenta de Pey**: su API key y su CLABE, para que el dinero de cada negocio vaya
   siempre directo a su cuenta.
