@@ -40,6 +40,16 @@ export function splitCents(totalCents: number, parts: number): number[] {
   return Array.from({ length: parts }, (_, index) => base + (index < remainder ? 1 : 0));
 }
 
+// Parses what a person types ("120", "120.5", "120.50") into cents without floating point; null if invalid.
+export function parsePesosInput(value: string): number | null {
+  const match = /^(\d{1,7})(?:[.,](\d{0,2}))?$/.exec(value.trim());
+  if (!match) return null;
+  return Number(match[1]) * 100 + Number((match[2] ?? "").padEnd(2, "0"));
+}
+
+export const centsToPesosInput = (cents: number) =>
+  (cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2));
+
 // Pey speaks MXN pesos as JSON numbers; we keep integer cents everywhere else.
 export const centsToPesos = (cents: number) => Math.round(cents) / 100;
 export const pesosToCents = (pesos: number) => Math.round(pesos * 100);

@@ -1,5 +1,36 @@
 import { describe, expect, it } from "vitest";
-import { AmountError, centsToPesos, computeAmounts, pesosToCents, splitCents } from "./money";
+import {
+  AmountError,
+  centsToPesos,
+  centsToPesosInput,
+  computeAmounts,
+  parsePesosInput,
+  pesosToCents,
+  splitCents,
+} from "./money";
+
+describe("parsePesosInput", () => {
+  it("reads typed peso amounts into cents", () => {
+    expect(parsePesosInput("120")).toBe(12000);
+    expect(parsePesosInput("120.5")).toBe(12050);
+    expect(parsePesosInput("120,50")).toBe(12050);
+    expect(parsePesosInput("0.01")).toBe(1);
+    expect(parsePesosInput(" 7. ")).toBe(700);
+  });
+
+  it("rejects anything else", () => {
+    expect(parsePesosInput("")).toBeNull();
+    expect(parsePesosInput("1.234")).toBeNull();
+    expect(parsePesosInput("-5")).toBeNull();
+    expect(parsePesosInput("abc")).toBeNull();
+  });
+
+  it("formats cents back for editing", () => {
+    expect(centsToPesosInput(30000)).toBe("300");
+    expect(centsToPesosInput(334)).toBe("3.34");
+    expect(centsToPesosInput(1)).toBe("0.01");
+  });
+});
 
 describe("splitCents", () => {
   it("splits exactly and gives leftover cents to the first shares", () => {

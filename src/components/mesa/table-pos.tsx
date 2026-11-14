@@ -18,7 +18,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ApiError, createCharge, fetchCharge, hasMerchantSession } from "@/lib/charges/api-client"
 import { sanitizeReference, type ChargeView } from "@/lib/charges/types"
-import { splitCents } from "@/lib/money"
+import { centsToPesosInput, parsePesosInput, splitCents } from "@/lib/money"
 import { cn } from "@/lib/utils"
 
 const POLL_MS = 2000
@@ -29,6 +29,11 @@ const TIP_PRESETS = [0, 10, 15, 20] as const
 const KEYS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const
 // Leaves room for " 10/10" inside the 24-character reference.
 const LABEL_MAX_LENGTH = 17
+
+type SplitMode = "equal" | "custom"
+
+const resize = (values: string[], length: number) =>
+  Array.from({ length }, (_, index) => values[index] ?? "")
 
 type Share = {
   baseCents: number
@@ -52,18 +57,37 @@ const shareTotal = (baseCents: number, tipPercent: number) =>
 const isPaid = (share: Share) => share.view?.status === "paid"
 const isPending = (share: Share) => share.view?.status === "pending"
 
+// Once the selected person pays, show the next one still owing, so the phone can be passed along.
+function visibleShare(bill: Bill, selected: number): number {
+  const index = Math.min(selected, bill.shares.length - 1)
+  if (!isPaid(bill.shares[index])) return index
+  const next = bill.shares.findIndex((share, i) => i > index && !isPaid(share))
+  const first = bill.shares.findIndex((share) => !isPaid(share))
+  return next >= 0 ? next : first >= 0 ? first : index
+}
+
 export function TablePos() {
   const router = useRouter()
   const [amountCents, setAmountCents] = useState(0)
   const [people, setPeople] = useState(MIN_PEOPLE)
   const [tipPercent, setTipPercent] = useState<number>(0)
   const [label, setLabel] = useState("Mesa 1")
+  const [splitMode, setSplitMode] = useState<SplitMode>("equal")
+  const [customAmounts, setCustomAmounts] = useState<string[]>([])
   const [bill, setBill] = useState<Bill | null>(null)
   const [selected, setSelected] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
-  const shares = splitCents(amountCents, people)
+  const equalShares = splitCents(amountCents, people)
+  const customShares = resize(customAmounts, people).map(parsePesosInput)
+  const assignedCents = customShares.reduce<number>((sum, cents) => sum + (cents ?? 0), 0)
+  const customValid =
+    amountCents > 0 &&
+    customShares.every((cents) => cents !== null && cents > 0) &&
+    assignedCents === amountCents
+  const shares =
+    splitMode === "equal" ? equalShares : customValid ? (customShares as number[]) : []
   const canSplit = shares.length === people
   const pendingIds = bill?.shares.filter(isPending).map((share) => share.view!.id).join(",") ?? ""
 
@@ -150,11 +174,26 @@ export function TablePos() {
     )
   }
 
+  function changePeople(next: number) {
+    setPeople(next)
+    setCustomAmounts((current) => resize(current, next))
+  }
+
+  // Starts from the equal split so adjusting a couple of shares is quick.
+  function chooseCustom() {
+    setSplitMode("custom")
+    if (customAmounts.every((value) => value === "") && equalShares.length === people) {
+      setCustomAmounts(equalShares.map(centsToPesosInput))
+    }
+  }
+
   function newBill() {
     setBill(null)
     setAmountCents(0)
     setPeople(MIN_PEOPLE)
     setTipPercent(0)
+    setSplitMode("equal")
+    setCustomAmounts([])
     setFormError(null)
   }
 
@@ -169,7 +208,7 @@ export function TablePos() {
         ) : bill ? (
           <ProgressScreen
             bill={bill}
-            selected={Math.min(selected, bill.shares.length - 1)}
+            selected={visibleShare(bill, selected)}
             submitting={submitting}
             onSelect={setSelected}
             onRetry={retryShare}
@@ -224,7 +263,7 @@ export function TablePos() {
                     size="icon"
                     aria-label="Una persona menos"
                     disabled={people <= MIN_PEOPLE}
-                    onClick={() => setPeople((current) => Math.max(MIN_PEOPLE, current - 1))}
+                    onClick={() => changePeople(Math.max(MIN_PEOPLE, people - 1))}
                   >
                     <Minus />
                   </Button>
@@ -237,12 +276,72 @@ export function TablePos() {
                     size="icon"
                     aria-label="Una persona más"
                     disabled={people >= MAX_PEOPLE}
-                    onClick={() => setPeople((current) => Math.min(MAX_PEOPLE, current + 1))}
+                    onClick={() => changePeople(Math.min(MAX_PEOPLE, people + 1))}
                   >
                     <Plus />
                   </Button>
                 </div>
               </div>
+
+              <div role="group" aria-label="Cómo dividir" className="grid shrink-0 grid-cols-2 gap-1.5">
+                <Button
+                  type="button"
+                  variant={splitMode === "equal" ? "default" : "outline"}
+                  aria-pressed={splitMode === "equal"}
+                  className="h-10"
+                  onClick={() => setSplitMode("equal")}
+                >
+                  Partes iguales
+                </Button>
+                <Button
+                  type="button"
+                  variant={splitMode === "custom" ? "default" : "outline"}
+                  aria-pressed={splitMode === "custom"}
+                  className="h-10"
+                  onClick={chooseCustom}
+                >
+                  Montos distintos
+                </Button>
+              </div>
+
+              {splitMode === "custom" ? (
+                <div className="flex shrink-0 flex-col gap-2">
+                  {resize(customAmounts, people).map((value, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <label htmlFor={`persona-${index}`} className="w-24 shrink-0 text-sm font-medium">
+                        Persona {index + 1}
+                      </label>
+                      <Input
+                        id={`persona-${index}`}
+                        inputMode="decimal"
+                        autoComplete="off"
+                        placeholder="0.00"
+                        value={value}
+                        aria-invalid={value !== "" && customShares[index] === null ? true : undefined}
+                        className="h-11 bg-white px-3 text-base tabular-nums"
+                        onValueChange={(next) =>
+                          setCustomAmounts((current) =>
+                            resize(current, people).map((v, i) => (i === index ? next.replace(/[^\d.,]/g, "") : v)),
+                          )
+                        }
+                      />
+                    </div>
+                  ))}
+                  <p
+                    aria-live="polite"
+                    className={cn(
+                      "text-sm",
+                      assignedCents === amountCents && amountCents > 0 ? "text-[#127a45]" : "text-muted-foreground",
+                    )}
+                  >
+                    {assignedCents === amountCents && amountCents > 0
+                      ? "Las partes suman el total."
+                      : assignedCents < amountCents
+                        ? `Faltan ${formatMxn(amountCents - assignedCents)} por asignar.`
+                        : `Sobran ${formatMxn(assignedCents - amountCents)}.`}
+                  </p>
+                </div>
+              ) : null}
 
               <div className="flex shrink-0 flex-col gap-2">
                 <p className="text-sm font-medium">Propina</p>
@@ -279,11 +378,19 @@ export function TablePos() {
               <Card className="shrink-0 bg-white shadow-none">
                 <CardContent className="flex flex-col gap-2">
                   <MoneyRow label="Total" value={formatMxn(amountCents)} />
-                  <MoneyRow
-                    label={`Cada persona (${people})`}
-                    value={canSplit ? formatMxn(shareTotal(shares[0], tipPercent)) : "—"}
-                    emphasis
-                  />
+                  {splitMode === "equal" ? (
+                    <MoneyRow
+                      label={`Cada persona (${people})`}
+                      value={canSplit ? formatMxn(shareTotal(shares[0], tipPercent)) : "—"}
+                      emphasis
+                    />
+                  ) : (
+                    <MoneyRow
+                      label={tipPercent > 0 ? `Con propina ${tipPercent} %` : "Total a cobrar"}
+                      value={formatMxn(customShares.reduce<number>((sum, cents) => sum + shareTotal(cents ?? 0, tipPercent), 0))}
+                      emphasis
+                    />
+                  )}
                 </CardContent>
               </Card>
             </div>
