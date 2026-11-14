@@ -7,7 +7,7 @@ Source of truth for phase and status. Update "Current status" at the end of ever
 - 1b done: `docs/pey-api.md` verified against openapi.json and webhook docs; `docs/domain.md` has schema,
   charge states, matching, reconcile and our API contract.
 - 1c done: Drizzle schema (pushed to Neon), Pey client, session login, charges API with reconcile on read,
-  signed webhook, `/login` and `/prueba` ($0.01 diagnostic page).
+  signed webhook, `/login` and a $0.01 diagnostic page (removed once the counter screen covered it).
 - Phase 2 integrated: counter screen (built in Cursor) wired to the real engine at `/mostrador` (`/` redirects there):
   real QR/push, server-driven status polling, server expiry, retry creates a new charge, any tip 0–100 %.
 - 2026-11-14 20:12: first real CoDi payment in production. Charge #1006 ($0.01 QR) paid from a bank app,
