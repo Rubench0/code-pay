@@ -13,9 +13,13 @@ Source of truth for phase and status. Update "Current status" at the end of ever
 - 2026-11-14 20:12: first real CoDi payment in production. Charge #1006 ($0.01 QR) paid from a bank app,
   detected by reconcile 1.8 s later (`outcome=applied`, tracking key stored, no payer fee). Paid 0.4 s after our
   `expires_at`, so the 60 s grace mattered. Production URL: https://code-pay-ochre.vercel.app
-- Next: register webhook URL `/api/webhooks/pey` in Pey, set `PEY_WEBHOOK_SECRET` → push test →
-  1d security review (Opus) → submit Cursor CDMX form (Sun 13:00).
-- Waiting on Rubén: webhook secret from the portal, push test from his phone.
+- Push payment verified (#1007). Webhook live in production (signed, fake signature → 401).
+- Phase 3 done: `/mesa` splits a bill equally or with different amounts per person, one QR per person.
+- 1d security review done (notes kept privately); headers, `/prueba` removal and README landed on `main`.
+- Amigapp integration: private `/api/integrations/charges` (Bearer `INTEGRATION_API_KEY`); Amigapp backend
+  `startCodiPayment` / `confirmCodiPayment` and the gourmet storefront "Paga con CoDi" card live outside this repo.
+- Next: end-to-end test with Restaurante Demo (order → CoDi push → order paid in the admin) → submit Cursor CDMX
+  form (Sun 13:00).
 
 ## Phases
 | # | Scope | Done when |
