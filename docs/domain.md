@@ -81,6 +81,14 @@ All merchant routes require the session cookie.
   may trigger reconcile.
 - `POST /api/webhooks/pey`: Pey only, signature required.
 
+## Integration API (server-to-server, team's own apps only)
+Used by the Amigapp backend so a diner can pay an order with CoDi. Not public: `Authorization: Bearer <INTEGRATION_API_KEY>`,
+compared in constant time; without the env var the routes answer 404.
+- `POST /api/integrations/charges` `{ kind: "qr" | "push", amountCents: int > 0, reference: REFERENCE_PATTERN, phone? }`
+  → 201 `ChargeView`. Amount is final (no tip added here); the demo cap still applies.
+- `GET /api/integrations/charges/{id}` → `ChargeView` (same reconcile on read as the merchant route).
+The caller must verify `status === "paid"` with this GET before marking anything paid on its side.
+
 ## Security notes
 - Webhook secrets and the API key only in server env; `src/lib/pey` imports `server-only`.
 - The payer's CLABE in webhook metadata is personal data: stripped before storing, never logged.

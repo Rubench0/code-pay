@@ -16,6 +16,8 @@ export const env = {
   databaseUrl: () => required("DATABASE_URL"),
   merchantPassword: () => required("MERCHANT_PASSWORD"),
   sessionSecret: () => required("SESSION_SECRET"),
+  // Optional: without it the integration API stays disabled.
+  integrationApiKey: () => process.env.INTEGRATION_API_KEY?.trim() || undefined,
   demoMaxAmountCents: () => {
     const value = Number(process.env.DEMO_MAX_AMOUNT_CENTS);
     return Number.isInteger(value) && value > 0 ? value : DEFAULT_DEMO_MAX_AMOUNT_CENTS;
