@@ -10,9 +10,12 @@ Source of truth for phase and status. Update "Current status" at the end of ever
   signed webhook, `/login` and `/prueba` ($0.01 diagnostic page).
 - Phase 2 integrated: counter screen (built in Cursor) wired to the real engine at `/mostrador` (`/` redirects there):
   real QR/push, server-driven status polling, server expiry, retry creates a new charge, any tip 0–100 %.
-- Next: first real $0.01 on Vercel (QR and push) → register webhook URL `/api/webhooks/pey` in Pey, set
-  `PEY_WEBHOOK_SECRET` → 1d security review (Opus) → submit Cursor CDMX form (Sun 13:00).
-- Waiting on Rubén: real payment test from his phone, webhook secret after deploy.
+- 2026-11-14 20:12: first real CoDi payment in production. Charge #1006 ($0.01 QR) paid from a bank app,
+  detected by reconcile 1.8 s later (`outcome=applied`, tracking key stored, no payer fee). Paid 0.4 s after our
+  `expires_at`, so the 60 s grace mattered. Production URL: https://code-pay-ochre.vercel.app
+- Next: register webhook URL `/api/webhooks/pey` in Pey, set `PEY_WEBHOOK_SECRET` → push test →
+  1d security review (Opus) → submit Cursor CDMX form (Sun 13:00).
+- Waiting on Rubén: webhook secret from the portal, push test from his phone.
 
 ## Phases
 | # | Scope | Done when |

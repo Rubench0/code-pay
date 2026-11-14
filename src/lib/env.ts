@@ -1,8 +1,9 @@
 import "server-only";
 
 // Read lazily so a missing variable only breaks the feature that needs it, and errors never include values.
+// Trimmed because values pasted into a dashboard can carry a trailing newline that .env files would drop.
 function required(name: string): string {
-  const value = process.env[name];
+  const value = process.env[name]?.trim();
   if (!value) throw new Error(`Missing environment variable ${name}`);
   return value;
 }

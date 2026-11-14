@@ -11,7 +11,14 @@ export function verifyWebhook(rawBody: string, headers: Headers): { webhookId: s
   const signature = headers.get("webhook-signature");
   if (!webhookId || !timestamp || !signature) throw new WebhookSignatureError();
 
-  const verifier = new Webhook(env.peyWebhookSecret());
+  const secret = env.peyWebhookSecret();
+  let verifier: Webhook;
+  try {
+    verifier = new Webhook(secret);
+  } catch {
+    throw new Error("PEY_WEBHOOK_SECRET is not a valid whsec_ secret");
+  }
+
   try {
     const payload = verifier.verify(rawBody, {
       "webhook-id": webhookId,
