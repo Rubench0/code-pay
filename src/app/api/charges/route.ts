@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { hasSession } from "@/lib/auth/session";
 import { ChargeCreationError, createCharge } from "@/lib/charges/service";
+import { REFERENCE_PATTERN } from "@/lib/charges/types";
 import { jsonError, readJson } from "@/lib/http";
 import { AmountError, MAX_TIP_PERCENT } from "@/lib/money";
 
@@ -15,6 +16,7 @@ const createChargeBody = z
       .string()
       .regex(/^[0-9]{10}$/)
       .optional(),
+    reference: z.string().regex(REFERENCE_PATTERN).optional(),
   })
   .refine((body) => body.tipPercent === undefined || body.tipCents === undefined, {
     message: "Send tipPercent or tipCents, not both",

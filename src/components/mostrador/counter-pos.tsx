@@ -1,18 +1,25 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { Check, Delete, Smartphone } from "lucide-react"
 import { ChargeQr } from "@/components/charge-qr"
+import {
+  formatMxn,
+  Key,
+  loginPathForCurrentPage,
+  MoneyRow,
+  NavLink,
+  ScreenHeader,
+} from "@/components/pos/ui"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ApiError, createCharge, fetchCharge, hasMerchantSession } from "@/lib/charges/api-client"
-import type { ChargeView, CreateChargeRequest } from "@/lib/charges/types"
+import { sanitizeReference, type ChargeView, type CreateChargeRequest } from "@/lib/charges/types"
 import { cn } from "@/lib/utils"
 
-const LOGIN_PATH = "/login?next=/mostrador"
 const POLL_MS = 2000
 const MAX_CENTS = 9_999_999
 const TIP_PRESETS = [0, 10, 15, 20] as const
@@ -28,15 +35,11 @@ type ActiveCharge = {
   phone: string
 }
 
-const money = new Intl.NumberFormat("es-MX", {
-  style: "currency",
-  currency: "MXN",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
-
-function formatMxn(cents: number): string {
-  return money.format(cents / 100)
+// Other apps (e.g. Amigapp) open the counter prefilled: /mostrador?monto=8250&ref=PED-123
+function readAmountParam(value: string | null): number {
+  if (!value || !/^\d{1,7}$/.test(value)) return 0
+  const cents = Number(value)
+  return cents <= MAX_CENTS ? cents : 0
 }
 
 function formatPhone(digits: string): string {
@@ -92,7 +95,9 @@ const remainingUntil = (expiresAt: string) => new Date(expiresAt).getTime() - Da
 
 export function CounterPos() {
   const router = useRouter()
-  const [amountCents, setAmountCents] = useState(0)
+  const searchParams = useSearchParams()
+  const reference = sanitizeReference(searchParams.get("ref"))
+  const [amountCents, setAmountCents] = useState(() => readAmountParam(searchParams.get("monto")))
   const [tipChoice, setTipChoice] = useState<TipChoice>(0)
   const [customTip, setCustomTip] = useState("")
   const [phone, setPhone] = useState("")
@@ -127,7 +132,7 @@ export function CounterPos() {
   useEffect(() => {
     hasMerchantSession()
       .then((ok) => {
-        if (!ok) router.replace(LOGIN_PATH)
+        if (!ok) router.replace(loginPathForCurrentPage())
       })
       .catch(() => {})
   }, [router])
@@ -146,7 +151,7 @@ export function CounterPos() {
         const view = await fetchCharge(chargeId)
         setActive((current) => (current?.view.id === view.id ? { ...current, view } : current))
       } catch (error) {
-        if (error instanceof ApiError && error.status === 401) router.replace(LOGIN_PATH)
+        if (error instanceof ApiError && error.status === 401) router.replace(loginPathForCurrentPage())
       }
     }, POLL_MS)
     return () => window.clearInterval(id)
@@ -184,7 +189,7 @@ export function CounterPos() {
       setActive({ view, request, phone: chargePhone })
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
-        router.replace(LOGIN_PATH)
+        router.replace(loginPathForCurrentPage())
         return
       }
       setActive(null)
@@ -212,6 +217,7 @@ export function CounterPos() {
         baseCents: amountCents,
         tipPercent: percent,
         ...(delivery === "push" ? { phone } : {}),
+        ...(reference ? { reference } : {}),
       },
       delivery === "push" ? phone : "",
     )
@@ -231,6 +237,7 @@ export function CounterPos() {
     setPhoneAttempted(false)
     setFormError(null)
     setActive(null)
+    if (searchParams.size > 0) router.replace("/mostrador")
   }
 
   return (
@@ -262,15 +269,14 @@ export function CounterPos() {
           >
             <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
               <ScreenHeader
-                trailing={
-                  <Badge variant="outline" className="h-6 bg-white px-2.5">
-                    CoDi
-                  </Badge>
-                }
+                title="Mostrador"
+                trailing={<NavLink href="/mesa">Dividir cuenta</NavLink>}
               />
 
               <div ref={amountRef} className="flex shrink-0 flex-col items-center gap-2">
-                <p className="text-sm text-muted-foreground">Monto</p>
+                <p className="text-sm text-muted-foreground">
+                  {reference ? `Monto · ${reference}` : "Monto"}
+                </p>
                 <p
                   aria-live="polite"
                   className="text-center text-[clamp(2.5rem,12vw,3.5rem)] leading-none font-semibold tracking-tight tabular-nums"
@@ -421,62 +427,6 @@ export function CounterPos() {
   )
 }
 
-function ScreenHeader({ trailing }: { trailing?: React.ReactNode }) {
-  return (
-    <header className="flex shrink-0 items-center justify-between gap-3">
-      <div>
-        <p className="text-xs font-medium text-muted-foreground">Cobro CoDi</p>
-        <h1 className="text-xl font-semibold tracking-tight">Mostrador</h1>
-      </div>
-      {trailing}
-    </header>
-  )
-}
-
-function Key({
-  children,
-  className,
-  onClick,
-  ...props
-}: React.ComponentProps<"button">) {
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      className={cn(
-        "h-12 w-full rounded-2xl bg-white text-2xl font-medium shadow-none",
-        className,
-      )}
-      onClick={onClick}
-      {...props}
-    >
-      {children}
-    </Button>
-  )
-}
-
-function MoneyRow({
-  label,
-  value,
-  emphasis = false,
-}: {
-  label: string
-  value: string
-  emphasis?: boolean
-}) {
-  return (
-    <div
-      className={cn(
-        "flex items-baseline justify-between gap-3",
-        emphasis && "border-t border-border pt-2 text-base font-semibold",
-      )}
-    >
-      <span className={emphasis ? undefined : "text-muted-foreground"}>{label}</span>
-      <span className="tabular-nums">{value}</span>
-    </div>
-  )
-}
-
 function PendingScreen({
   charge,
   phone,
@@ -493,6 +443,7 @@ function PendingScreen({
   return (
     <div className="flex h-full flex-col overflow-y-auto px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <ScreenHeader
+        title="Mostrador"
         trailing={
           <Badge variant="outline" className="h-6 gap-1.5 bg-white px-2.5">
             <span className="size-1.5 rounded-full bg-amber-500" aria-hidden />
@@ -502,7 +453,10 @@ function PendingScreen({
       />
 
       <div className="mt-6 flex flex-col items-center gap-1 text-center">
-        <p className="text-sm text-muted-foreground">Cobro #{charge.numRef}</p>
+        <p className="text-sm text-muted-foreground">
+          Cobro #{charge.numRef}
+          {charge.reference ? ` · ${charge.reference}` : ""}
+        </p>
         <p className="text-[clamp(2.25rem,11vw,3.25rem)] leading-none font-semibold tracking-tight tabular-nums">
           {formatMxn(charge.totalCents)}
         </p>
@@ -564,7 +518,10 @@ function PaidScreen({ charge, onNew }: { charge: ChargeView; onNew: () => void }
         <Check className="size-10" strokeWidth={2.5} />
       </div>
       <div className="flex flex-col items-center gap-3">
-        <h1 className="text-lg font-medium">Pagado · Cobro #{charge.numRef}</h1>
+        <h1 className="text-lg font-medium">
+          Pagado · Cobro #{charge.numRef}
+          {charge.reference ? ` · ${charge.reference}` : ""}
+        </h1>
         <p className="text-[clamp(3rem,14vw,4.5rem)] leading-none font-semibold tracking-tight tabular-nums">
           {formatMxn(charge.totalCents)}
         </p>

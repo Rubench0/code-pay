@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { CounterPos } from "@/components/mostrador/counter-pos";
 
 export const metadata: Metadata = {
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function MostradorPage() {
-  return <CounterPos />;
+  return (
+    <Suspense>
+      <CounterPos />
+    </Suspense>
+  );
 }

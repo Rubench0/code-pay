@@ -28,6 +28,7 @@ function toView(charge: Charge): ChargeView {
     tipCents: charge.tipCents,
     totalCents: charge.totalCents,
     numRef: charge.numRef,
+    reference: charge.reference,
     expiresAt: charge.expiresAt.toISOString(),
     paidAt: charge.paidAt?.toISOString() ?? null,
     qrString: charge.qrString,
@@ -51,6 +52,7 @@ export async function createCharge(input: CreateChargeInput): Promise<ChargeView
       kind: input.kind,
       ...amounts,
       concept: "Cobro",
+      reference: input.reference ?? null,
       phoneLast4: input.phone?.slice(-4) ?? null,
       expiresAt: expiresFromNow(),
     })
@@ -59,7 +61,7 @@ export async function createCharge(input: CreateChargeInput): Promise<ChargeView
   const request = {
     chargeId: draft.id,
     amountCents: draft.totalCents,
-    concept: `Cobro #${draft.numRef}`,
+    concept: `Cobro #${draft.numRef}${input.reference ? ` ${input.reference}` : ""}`.slice(0, 40),
     numRef: draft.numRef,
     expirationSeconds: EXPIRATION_SECONDS,
   };

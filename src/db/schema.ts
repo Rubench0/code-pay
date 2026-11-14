@@ -42,6 +42,7 @@ export const charges = pgTable(
       .notNull()
       .default(sql`nextval('charge_num_ref_seq')::text`),
     concept: text("concept").notNull(),
+    reference: text("reference"),
     phoneLast4: text("phone_last4"),
     peyQrId: text("pey_qr_id").unique(),
     qrString: text("qr_string"),

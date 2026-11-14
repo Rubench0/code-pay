@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { AmountError, centsToPesos, computeAmounts, pesosToCents } from "./money";
+import { AmountError, centsToPesos, computeAmounts, pesosToCents, splitCents } from "./money";
+
+describe("splitCents", () => {
+  it("splits exactly and gives leftover cents to the first shares", () => {
+    expect(splitCents(120000, 4)).toEqual([30000, 30000, 30000, 30000]);
+    expect(splitCents(1000, 3)).toEqual([334, 333, 333]);
+    expect(splitCents(2, 2)).toEqual([1, 1]);
+    expect(splitCents(1000, 3).reduce((a, b) => a + b, 0)).toBe(1000);
+  });
+
+  it("rejects impossible splits", () => {
+    expect(splitCents(1, 2)).toEqual([]);
+    expect(splitCents(0, 2)).toEqual([]);
+    expect(splitCents(100, 0)).toEqual([]);
+  });
+});
 
 describe("computeAmounts", () => {
   it("adds a percent tip rounded to the cent", () => {

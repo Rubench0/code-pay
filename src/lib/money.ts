@@ -31,6 +31,15 @@ export function computeAmounts(
   return { baseCents, tipCents, totalCents };
 }
 
+// Splits a bill into `parts` shares that add up exactly; leftover cents go to the first shares.
+export function splitCents(totalCents: number, parts: number): number[] {
+  if (!Number.isInteger(totalCents) || totalCents <= 0) return [];
+  if (!Number.isInteger(parts) || parts < 1 || parts > totalCents) return [];
+  const base = Math.floor(totalCents / parts);
+  const remainder = totalCents % parts;
+  return Array.from({ length: parts }, (_, index) => base + (index < remainder ? 1 : 0));
+}
+
 // Pey speaks MXN pesos as JSON numbers; we keep integer cents everywhere else.
 export const centsToPesos = (cents: number) => Math.round(cents) / 100;
 export const pesosToCents = (pesos: number) => Math.round(pesos * 100);
