@@ -12,7 +12,6 @@ const DEFAULT_DEMO_MAX_AMOUNT_CENTS = 1000;
 export const env = {
   peyApiKey: () => required("PEY_API_KEY"),
   peyWebhookSecret: () => required("PEY_WEBHOOK_SECRET"),
-  peyBankAccountId: () => process.env.PEY_BANK_ACCOUNT_ID || undefined,
   databaseUrl: () => required("DATABASE_URL"),
   merchantPassword: () => required("MERCHANT_PASSWORD"),
   sessionSecret: () => required("SESSION_SECRET"),

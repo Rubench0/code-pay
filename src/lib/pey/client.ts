@@ -55,13 +55,14 @@ type ChargeRequest = {
   expirationSeconds: number;
 };
 
+// No bankAccountId on purpose: Pey pays into the CoDi account linked to the API key in the portal,
+// and portal accounts cannot be addressed by id through the API.
 function chargeBody(request: ChargeRequest) {
   return {
     amount: centsToPesos(request.amountCents),
     concept: request.concept,
     expiration: request.expirationSeconds,
     numRef: request.numRef,
-    bankAccountId: env.peyBankAccountId(),
     metadata: { chargeId: request.chargeId },
   };
 }

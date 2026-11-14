@@ -7,6 +7,13 @@ Base URL `https://api.pey.mx` · Auth header `Authorization: Bearer <PEY_API_KEY
 in pesos** (e.g. `82.5`), not cents. Our code keeps integer cents and converts only inside `src/lib/pey`.
 Docs also mention `https://api.dev.pey.mx` for testing; not verified, and the hackathon requires production.
 
+## Which bank account receives the money
+Each API key is linked to one CoDi bank account in the portal (Developer → Edit API Key → Bank Account).
+Without `bankAccountId`, charges go to that account; our client never sends `bankAccountId`.
+Accounts created in the portal are **not** reachable by id through the API (`BANK_ACCOUNT_NOT_FOUND`); only accounts
+registered with `POST /bank-account` under the same key are. A key linked to a `PENDING` account answers
+`INVALID_STATE`. Verified on 2026-11-14.
+
 ## Errors (all endpoints)
 `{ "error": { "message": string, "type": string, "requestId": string } }`
 - 400 types: `INVALID_REQUEST`, `INCOMPLETE_PARAMETERS`, `INVALID_PARAMETER(S)`, `INVALID_AMOUNT`, `INVALID_STATE`,
