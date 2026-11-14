@@ -3,20 +3,9 @@
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
+import type { ChargeView } from "@/lib/charges/types";
 
-// Walking-skeleton page: proves a real $0.01 CoDi charge end to end. Replaced by the counter screen in phase 2.
-
-type ChargeView = {
-  id: string;
-  kind: "qr" | "push";
-  status: "pending" | "paid" | "expired" | "failed";
-  late: boolean;
-  totalCents: number;
-  numRef: string;
-  expiresAt: string;
-  paidAt: string | null;
-  qrString: string | null;
-};
+// Diagnostic page: a fixed $0.01 CoDi charge end to end, independent from the counter screen.
 
 const POLL_MS = 2000;
 const TEST_AMOUNT_CENTS = 1;

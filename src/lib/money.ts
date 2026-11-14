@@ -1,5 +1,4 @@
-export const TIP_PERCENTS = [0, 10, 15, 20] as const;
-export type TipPercent = (typeof TIP_PERCENTS)[number];
+export const MAX_TIP_PERCENT = 100;
 
 export type AmountErrorCode = "invalid_base" | "invalid_tip" | "over_limit";
 
@@ -12,13 +11,16 @@ export class AmountError extends Error {
 export type Amounts = { baseCents: number; tipCents: number; totalCents: number };
 
 export function computeAmounts(
-  input: { baseCents: number; tipPercent?: TipPercent; tipCents?: number },
+  input: { baseCents: number; tipPercent?: number; tipCents?: number },
   maxTotalCents: number,
 ): Amounts {
-  const { baseCents } = input;
+  const { baseCents, tipPercent = 0 } = input;
   if (!Number.isInteger(baseCents) || baseCents <= 0) throw new AmountError("invalid_base");
+  if (!Number.isInteger(tipPercent) || tipPercent < 0 || tipPercent > MAX_TIP_PERCENT) {
+    throw new AmountError("invalid_tip");
+  }
 
-  const tipCents = input.tipCents ?? Math.round((baseCents * (input.tipPercent ?? 0)) / 100);
+  const tipCents = input.tipCents ?? Math.round((baseCents * tipPercent) / 100);
   if (!Number.isInteger(tipCents) || tipCents < 0 || tipCents > baseCents) {
     throw new AmountError("invalid_tip");
   }

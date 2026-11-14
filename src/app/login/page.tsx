@@ -5,7 +5,7 @@ import { Suspense, useState, type FormEvent } from "react";
 
 function safeNext(value: string | null): string {
   // Only same-site paths, to avoid open redirects.
-  return value && /^\/(?![/\\])/.test(value) ? value : "/prueba";
+  return value && /^\/(?![/\\])/.test(value) ? value : "/mostrador";
 }
 
 function LoginForm() {

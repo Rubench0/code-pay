@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { endSession, passwordMatches, startSession } from "@/lib/auth/session";
+import { endSession, hasSession, passwordMatches, startSession } from "@/lib/auth/session";
 import { jsonError, readJson } from "@/lib/http";
 
 const loginBody = z.object({ password: z.string().min(1).max(200) });
+
+export async function GET() {
+  if (!(await hasSession())) return jsonError(401, "unauthorized", "Inicia sesión");
+  return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+}
 
 export async function POST(request: Request) {
   const parsed = loginBody.safeParse(await readJson(request));

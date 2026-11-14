@@ -3,13 +3,13 @@ import { z } from "zod";
 import { hasSession } from "@/lib/auth/session";
 import { ChargeCreationError, createCharge } from "@/lib/charges/service";
 import { jsonError, readJson } from "@/lib/http";
-import { AmountError, TIP_PERCENTS } from "@/lib/money";
+import { AmountError, MAX_TIP_PERCENT } from "@/lib/money";
 
 const createChargeBody = z
   .object({
     kind: z.enum(["qr", "push"]),
     baseCents: z.int().positive(),
-    tipPercent: z.literal(TIP_PERCENTS).optional(),
+    tipPercent: z.int().min(0).max(MAX_TIP_PERCENT).optional(),
     tipCents: z.int().nonnegative().optional(),
     phone: z
       .string()

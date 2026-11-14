@@ -6,14 +6,13 @@ Source of truth for phase and status. Update "Current status" at the end of ever
 - 1a done: scaffold, agent files, docs, secret guards; pushed to github.com/Rubench0/code-pay.
 - 1b done: `docs/pey-api.md` verified against openapi.json and webhook docs; `docs/domain.md` has schema,
   charge states, matching, reconcile and our API contract.
-- 1c code done (Opus): Drizzle schema, Pey client, session login, `POST /api/charges`, `GET /api/charges/{id}`
-  (reconcile on read), `POST /api/webhooks/pey`, pages `/login` and `/prueba` ($0.01 test). Tests, typecheck,
-  lint and build pass. Not yet run against Pey or Neon.
-- In progress (Cursor): counter screen with mock data in `src/app/(merchant)/mostrador` + shadcn setup.
-- Next: `pnpm db:push` once `DATABASE_URL` is set → env vars in Vercel → deploy → first real $0.01 on `/prueba`
-  (works via reconcile even before the webhook) → register webhook URL `/api/webhooks/pey` in Pey, set
-  `PEY_WEBHOOK_SECRET` → 1d security review (Opus).
-- Waiting on Rubén: Pey API key, Neon `DATABASE_URL`, webhook secret after deploy.
+- 1c done: Drizzle schema (pushed to Neon), Pey client, session login, charges API with reconcile on read,
+  signed webhook, `/login` and `/prueba` ($0.01 diagnostic page).
+- Phase 2 integrated: counter screen (built in Cursor) wired to the real engine at `/mostrador` (`/` redirects there):
+  real QR/push, server-driven status polling, server expiry, retry creates a new charge, any tip 0–100 %.
+- Next: first real $0.01 on Vercel (QR and push) → register webhook URL `/api/webhooks/pey` in Pey, set
+  `PEY_WEBHOOK_SECRET` → 1d security review (Opus) → submit Cursor CDMX form (Sun 13:00).
+- Waiting on Rubén: real payment test from his phone, webhook secret after deploy.
 
 ## Phases
 | # | Scope | Done when |

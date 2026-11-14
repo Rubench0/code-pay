@@ -3,9 +3,10 @@ import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { charges, webhookEvents, type Charge } from "@/db/schema";
 import { env } from "@/lib/env";
-import { computeAmounts, pesosToCents, type TipPercent } from "@/lib/money";
+import { computeAmounts, pesosToCents } from "@/lib/money";
 import * as pey from "@/lib/pey/client";
 import { eventType, parsePaymentEvent, sanitizePayload, type PaymentEvent } from "@/lib/pey/events";
+import type { ChargeView, CreateChargeRequest } from "./types";
 
 const EXPIRATION_SECONDS = 360;
 // Pey sends no expiration event; wait a bit past expiry so a slow webhook is not treated as unpaid.
@@ -15,27 +16,7 @@ const RECONCILE_MIN_AGE_MS = 5_000;
 
 export class ChargeCreationError extends Error {}
 
-export type CreateChargeInput = {
-  kind: "qr" | "push";
-  baseCents: number;
-  tipPercent?: TipPercent;
-  tipCents?: number;
-  phone?: string;
-};
-
-export type ChargeView = {
-  id: string;
-  kind: Charge["kind"];
-  status: Charge["status"];
-  late: boolean;
-  baseCents: number;
-  tipCents: number;
-  totalCents: number;
-  numRef: string;
-  expiresAt: string;
-  paidAt: string | null;
-  qrString: string | null;
-};
+export type CreateChargeInput = CreateChargeRequest & { tipCents?: number };
 
 function toView(charge: Charge): ChargeView {
   return {

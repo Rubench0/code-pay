@@ -11,8 +11,10 @@ describe("computeAmounts", () => {
     expect(computeAmounts({ baseCents: 333, tipPercent: 15 }, 100_000).tipCents).toBe(50);
   });
 
-  it("accepts a custom tip in cents", () => {
+  it("accepts a custom tip in cents or any whole percent up to 100", () => {
     expect(computeAmounts({ baseCents: 1000, tipCents: 125 }, 100_000).totalCents).toBe(1125);
+    expect(computeAmounts({ baseCents: 1000, tipPercent: 12 }, 100_000).tipCents).toBe(120);
+    expect(computeAmounts({ baseCents: 1000, tipPercent: 100 }, 100_000).totalCents).toBe(2000);
   });
 
   it("rejects invalid amounts and totals over the cap", () => {
@@ -28,6 +30,8 @@ describe("computeAmounts", () => {
     expect(code(() => computeAmounts({ baseCents: 10.5 }, 1000))).toBe("invalid_base");
     expect(code(() => computeAmounts({ baseCents: 100, tipCents: -1 }, 1000))).toBe("invalid_tip");
     expect(code(() => computeAmounts({ baseCents: 100, tipCents: 101 }, 1000))).toBe("invalid_tip");
+    expect(code(() => computeAmounts({ baseCents: 100, tipPercent: 101 }, 1000))).toBe("invalid_tip");
+    expect(code(() => computeAmounts({ baseCents: 100, tipPercent: 2.5 }, 1000))).toBe("invalid_tip");
     expect(code(() => computeAmounts({ baseCents: 1000, tipPercent: 10 }, 1000))).toBe("over_limit");
   });
 });
