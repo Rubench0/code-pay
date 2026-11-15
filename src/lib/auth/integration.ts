@@ -6,7 +6,7 @@ export type IntegrationAuth = "ok" | "disabled" | "unauthorized";
 
 const digest = (value: string) => createHash("sha256").update(value).digest();
 
-// Server-to-server access for the team's own apps (Amigapp backend). Hashing both sides keeps the comparison
+// Server-to-server access for the merchant's own systems. Hashing both sides keeps the comparison
 // constant-time regardless of token length.
 export function checkIntegrationAuth(request: Request): IntegrationAuth {
   const expected = env.integrationApiKey();

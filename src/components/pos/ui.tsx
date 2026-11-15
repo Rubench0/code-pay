@@ -23,11 +23,25 @@ export function ScreenHeader({
   return (
     <header className="flex shrink-0 items-center justify-between gap-3">
       <div>
-        <p className="text-xs font-medium text-muted-foreground">Cobro CoDi</p>
-        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+        <CobiMark />
+        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
       </div>
       {trailing}
     </header>
+  )
+}
+
+export function CobiMark({ className }: { className?: string }) {
+  return (
+    <p className={cn("flex items-center gap-1.5 text-sm font-bold text-primary", className)}>
+      <span
+        aria-hidden
+        className="flex size-5 items-center justify-center rounded-md bg-primary text-xs text-primary-foreground"
+      >
+        C
+      </span>
+      Cobi
+    </p>
   )
 }
 
@@ -35,7 +49,7 @@ export function NavLink({ href, children }: { href: string; children: React.Reac
   return (
     <Link
       href={href}
-      className="rounded-full border border-border bg-white px-3 py-1 text-xs font-medium text-foreground"
+      className="rounded-full border border-border bg-white px-4 py-2 text-sm font-bold text-foreground"
     >
       {children}
     </Link>

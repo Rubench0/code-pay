@@ -35,7 +35,7 @@ type ActiveCharge = {
   phone: string
 }
 
-// Other apps (e.g. Amigapp) open the counter prefilled: /mostrador?monto=8250&ref=PED-123
+// The merchant's other systems (e.g. its ordering system) open the counter prefilled: /mostrador?monto=8250&ref=PED-123
 function readAmountParam(value: string | null): number {
   if (!value || !/^\d{1,7}$/.test(value)) return 0
   const cents = Number(value)

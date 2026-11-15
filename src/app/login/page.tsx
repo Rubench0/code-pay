@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
+import { CobiMark } from "@/components/pos/ui";
 
 function safeNext(value: string | null): string {
   // Only same-site paths, to avoid open redirects.
@@ -31,18 +32,26 @@ function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="flex w-full max-w-sm flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Entrar al comercio</h1>
+      <div className="mb-4 flex flex-col gap-2">
+        <CobiMark className="text-3xl [&>span]:size-10 [&>span]:rounded-xl [&>span]:text-xl" />
+        <p className="text-lg text-muted-foreground">Cobi cobra con CoDi por ti.</p>
+      </div>
+      <h1 className="text-2xl font-bold">Entrar al comercio</h1>
       <input
         type="password"
         autoComplete="current-password"
         value={password}
         onChange={(event) => setPassword(event.target.value)}
         placeholder="Contraseña"
-        className="rounded-lg border px-4 py-3"
+        className="rounded-xl border border-input bg-white px-4 py-3"
         required
       />
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <button type="submit" disabled={loading} className="rounded-lg bg-black px-4 py-3 text-white disabled:opacity-50">
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <button
+        type="submit"
+        disabled={loading}
+        className="rounded-xl bg-primary px-4 py-3 font-bold text-primary-foreground disabled:opacity-50"
+      >
         {loading ? "Entrando…" : "Entrar"}
       </button>
     </form>
